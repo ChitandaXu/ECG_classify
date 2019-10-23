@@ -91,6 +91,23 @@ def heartbeat_factory(heartbeat_symbol):
         raise Exception('Invalid heartbeat type')
 
 
+def init_set(heartbeat, data_set_type):
+    if data_set_type == DataSetType.TRAINING:
+        if heartbeat.beat_type == APCBeat.beat_type:
+            data_set = np.empty((2000, 300))
+        else:
+            data_set = np.empty((4000, 300))
+        cur_dict = heartbeat.training_set_dict
+    else:
+        if heartbeat.beat_type == APCBeat.beat_type:
+            data_set = np.empty((500, 300))
+        else:
+            data_set = np.empty((1000, 300))
+        cur_dict = heartbeat.test_set_dict
+    data_size = data_set.shape[0]
+    return [cur_dict, data_set, np.empty(data_size), np.empty(data_size), np.empty(data_size), np.empty(data_size)]
+
+
 def generate_sample_by_heartbeat(heartbeat_symbol, data_set_type, need_denoise=True):
     """
     generate sample for training by specify heartbeat type
@@ -105,23 +122,7 @@ def generate_sample_by_heartbeat(heartbeat_symbol, data_set_type, need_denoise=T
     if not isinstance(data_set_type, DataSetType):
         raise Exception("Data type is invalid, please specify 'TRAINING' or 'TEST'.")
     heartbeat = heartbeat_factory(heartbeat_symbol)
-    if data_set_type == DataSetType.TRAINING:
-        if heartbeat.beat_type == APCBeat.beat_type:
-            data_set = np.empty((2000, 300))
-        else:
-            data_set = np.empty((4000, 300))
-        cur_dict = heartbeat.training_set_dict
-    else:
-        if heartbeat.beat_type == APCBeat.beat_type:
-            data_set = np.empty((500, 300))
-        else:
-            data_set = np.empty((1000, 300))
-        cur_dict = heartbeat.test_set_dict
-    data_size = data_set.shape[0]
-    r_loc_set = np.empty(data_size)
-    prev_r_loc_set = np.empty(data_size)
-    next_r_loc_set = np.empty(data_size)
-    number_set = np.empty(data_size)
+    [cur_dict, data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = init_set(heartbeat, data_set_type)
 
     keys = list(cur_dict.keys())
     for idx, val in enumerate(keys):
@@ -191,5 +192,3 @@ def denoise(signal):
     cD1 = np.zeros(cD1.shape)
     coeffs = [cA6, cD6, cD5, cD4, cD3, cD2, cD1]
     return pywt.waverec(coeffs, 'db6')
-
-
