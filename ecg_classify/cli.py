@@ -14,7 +14,7 @@ def main(args=None):
     click.echo("Replace this message by putting your code into "
                "ecg_classify.cli.main")
     click.echo("See click documentation at https://click.palletsprojects.com/")
-    [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set] = generate_sample_by_heartbeat(NormalBeat(), DataSetType.TRAINING)
+    [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = generate_sample_by_heartbeat('N', DataSetType.TRAINING)
     print(r_loc_set[0: 100])
     print(prev_r_loc_set[0: 100])
     return 0
