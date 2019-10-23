@@ -2,100 +2,9 @@
 
 """Main module."""
 import wfdb
+import pywt
 import numpy as np
-from enum import Enum
-
-
-class DataSetType(Enum):
-    TRAINING = 0
-    TEST = 1
-
-
-class NormalBeat:
-    beat_type = 'N'
-    training_set_dict = {
-        101: 1000,
-        103: 1000,
-        108: 1000,
-        112: 1000
-    }
-    test_set_dict = {
-        100: 1000
-    }
-
-
-class LBBBBeat:
-    beat_type = 'L'
-    training_set_dict = {
-        109: 1500,
-        111: 1500,
-        207: 1000
-    }
-    test_set_dict = {
-        214: 1000
-    }
-
-
-class RBBBBeat:
-    beat_type = 'R'
-    training_set_dict = {
-        118: 1500,
-        124: 1500,
-        231: 1000
-    }
-    test_set_dict = {
-        212: 1000
-    }
-
-
-class APCBeat:
-    beat_type = 'A'
-    training_set_dict = {
-        101: 3,
-        108: 4,
-        112: 2,
-        118: 96,
-        124: 2,
-        200: 30,
-        207: 106,
-        209: 383,
-        232: 1374
-    }
-    test_set_dict = {
-        100: 33,
-        201: 30,
-        202: 36,
-        205: 3,
-        213: 25,
-        220: 94,
-        222: 207,
-        223: 72
-    }
-
-
-class VPCBeat:
-    beat_type = 'V'
-    training_set_dict = {
-        106: 520,
-        116: 109,
-        118: 16,
-        119: 443,
-        124: 47,
-        200: 825,
-        203: 444,
-        208: 991,
-        215: 164,
-        221: 79,
-        228: 362
-    }
-    test_set_dict = {
-        105: 41,
-        201: 198,
-        205: 71,
-        214: 256,
-        219: 64,
-        223: 370
-    }
+from ecg_classify.constants import NormalBeat, LBBBBeat, RBBBBeat, APCBeat, VPCBeat, DataSetType
 
 
 def read_signal(data_number, samp_from=0, samp_to=None, channels=[0, 1], dir_path='../data/mit-bih'):
@@ -160,17 +69,42 @@ def read_all_signals(dir_path='../data/mit-bih'):
     return signals
 
 
-def duplicate_array(origin_array):
-    new_array = np.concatenate([origin_array, origin_array], axis=0)
-    return new_array
+def duplicate_array(*args):
+    res = []
+    for i in range(len(args)):
+        res.append(np.concatenate([args[i], args[i]], axis=0))
+    return res
 
 
-def generate_sample_by_heartbeat(heartbeat, data_set_type):
-    if not isinstance(heartbeat, (NormalBeat, LBBBBeat, RBBBBeat, APCBeat, VPCBeat)):
-        raise Exception("Heart beat type invalid.")
+def heartbeat_factory(heartbeat_symbol):
+    if heartbeat_symbol == 'N':
+        return NormalBeat()
+    elif heartbeat_symbol == 'L':
+        return LBBBBeat()
+    elif heartbeat_symbol == 'R':
+        return RBBBBeat()
+    elif heartbeat_symbol == 'A':
+        return APCBeat()
+    elif heartbeat_symbol == 'V':
+        return VPCBeat()
+    else:
+        raise Exception('Invalid heartbeat type')
+
+
+def generate_sample_by_heartbeat(heartbeat_symbol, data_set_type, need_denoise=True):
+    """
+    generate sample for training by specify heartbeat type
+
+    :param heartbeat_symbol: HeartBeat Symbol, eg: 'N', 'L', 'R', 'A', 'V'
+    :param data_set_type: data set type, 'Training' or 'Test'
+    :param need_denoise: choose whether to denoise, default is True
+    :return: sample for training
+    """
+    if heartbeat_symbol not in ['N', 'L', 'R', 'A', 'V']:
+        raise Exception("Invalid heartbeat type")
     if not isinstance(data_set_type, DataSetType):
         raise Exception("Data type is invalid, please specify 'TRAINING' or 'TEST'.")
-
+    heartbeat = heartbeat_factory(heartbeat_symbol)
     if data_set_type == DataSetType.TRAINING:
         if heartbeat.beat_type == APCBeat.beat_type:
             data_set = np.empty((2000, 300))
@@ -183,13 +117,17 @@ def generate_sample_by_heartbeat(heartbeat, data_set_type):
         else:
             data_set = np.empty((1000, 300))
         cur_dict = heartbeat.test_set_dict
-    r_loc_set = np.empty(data_set.shape[0])
-    prev_r_loc_set = np.empty(data_set.shape[0])
-    next_r_loc_set = np.empty(data_set.shape[0])
+    data_size = data_set.shape[0]
+    r_loc_set = np.empty(data_size)
+    prev_r_loc_set = np.empty(data_size)
+    next_r_loc_set = np.empty(data_size)
+    number_set = np.empty(data_size)
 
     keys = list(cur_dict.keys())
     for idx, val in enumerate(keys):
         sig = read_signal(val)[0][:, 0]
+        if need_denoise:
+            sig = denoise(sig)
         ann = read_annotation(val)
         origin_r_loc = ann.sample
         origin_symbol = np.asarray(ann.symbol)
@@ -209,13 +147,11 @@ def generate_sample_by_heartbeat(heartbeat, data_set_type):
         r_loc_set[start: end] = cur_r_loc[0: cur_count]
         prev_r_loc_set[start: end] = prev_r_loc[0: cur_count]
         next_r_loc_set[start: end] = next_r_loc[0: cur_count]
+        number_set[start: end] = keys[idx]
     if heartbeat.beat_type == APCBeat.beat_type:
         # sample number need to be doubled since the number of APC type is about 2000
-        data_set = duplicate_array(data_set)
-        r_loc_set = duplicate_array(r_loc_set)
-        prev_r_loc_set = duplicate_array(prev_r_loc_set)
-        next_r_loc_set = duplicate_array(next_r_loc_set)
-    return [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set]
+        return duplicate_array(data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set)
+    return [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set]
 
 
 def get_heartbeat_samples(r_peak_idx, signal):
@@ -237,3 +173,23 @@ def get_sig_type(dir_path='../data/mit-bih'):
     for i in range(number_of_signal):
         sig_type[i] = read_signal(arr[i], 0, 50)[1]['sig_name']
     return sig_type
+
+
+def denoise(signal):
+    """
+    Denoise by db6 with level 6
+
+    :param signal: ECG signal
+    :return: signal after denoise
+    """
+    coeffs = pywt.wavedec(signal, 'db6', level=6)
+    cA6, cD6, cD5, cD4, cD3, cD2, cD1 = coeffs
+
+    # only remain cD6 -> cD3
+    cA6 = np.zeros(cA6.shape)
+    cD2 = np.zeros(cD2.shape)
+    cD1 = np.zeros(cD1.shape)
+    coeffs = [cA6, cD6, cD5, cD4, cD3, cD2, cD1]
+    return pywt.waverec(coeffs, 'db6')
+
+
