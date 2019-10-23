@@ -19,8 +19,8 @@ def read_signal(data_number, samp_from=0, samp_to=None, channels=[0, 1], dir_pat
     :return: signal data, signal information
     """
     file_path = dir_path + "/" + str(data_number)
-    signal, signal_info = wfdb.rdsamp(file_path, samp_from, samp_to, channels)
-    return [signal, signal_info]
+    signal = wfdb.rdsamp(file_path, samp_from, samp_to, channels)[0][:, 0]
+    return signal
 
 
 def read_annotation(data_number, samp_from=0, samp_to=None, extension='atr', return_label=['symbol'],
@@ -105,7 +105,8 @@ def init_set(heartbeat, data_set_type):
             data_set = np.empty((1000, 300))
         cur_dict = heartbeat.test_set_dict
     data_size = data_set.shape[0]
-    return [cur_dict, data_set, np.empty(data_size), np.empty(data_size), np.empty(data_size), np.empty(data_size)]
+    template = np.empty(data_size).astype(int)
+    return [cur_dict, data_set, template.copy(), template.copy(), template.copy(), template.copy()]
 
 
 def generate_sample_by_heartbeat(heartbeat_symbol, data_set_type, need_denoise=True):
@@ -126,7 +127,7 @@ def generate_sample_by_heartbeat(heartbeat_symbol, data_set_type, need_denoise=T
 
     keys = list(cur_dict.keys())
     for idx, val in enumerate(keys):
-        sig = read_signal(val)[0][:, 0]
+        sig = read_signal(val)
         if need_denoise:
             sig = denoise(sig)
         ann = read_annotation(val)
@@ -149,6 +150,7 @@ def generate_sample_by_heartbeat(heartbeat_symbol, data_set_type, need_denoise=T
         prev_r_loc_set[start: end] = prev_r_loc[0: cur_count]
         next_r_loc_set[start: end] = next_r_loc[0: cur_count]
         number_set[start: end] = keys[idx]
+
     if heartbeat.beat_type == APCBeat.beat_type:
         # sample number need to be doubled since the number of APC type is about 2000
         return duplicate_array(data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set)
