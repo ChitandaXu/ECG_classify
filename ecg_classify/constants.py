@@ -91,3 +91,6 @@ class VPCBeat:
         219: 64,
         223: 370
     }
+
+
+label_list = ['N', 'L', 'R', 'A', 'V']

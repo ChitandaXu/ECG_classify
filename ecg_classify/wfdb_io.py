@@ -91,7 +91,7 @@ def heartbeat_factory(heartbeat_symbol):
         raise Exception('Invalid heartbeat type')
 
 
-def init_set(heartbeat, data_set_type):
+def init_set(heartbeat, data_set_type=DataSetType.TRAINING):
     if data_set_type == DataSetType.TRAINING:
         if heartbeat.beat_type == APCBeat.beat_type:
             data_set = np.empty((2000, 300))
