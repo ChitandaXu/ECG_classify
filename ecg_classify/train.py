@@ -49,7 +49,7 @@ def number_to_one_host(y, number_of_classes):
     return res
 
 
-def train_model(n=3, version=1):
+def train_model(model_type='cnn', n=3, version=1):
     x, y, x_test, y_test = prepare_data()
     x, y = shuffle_data(x, y)
     x_test, y_test = shuffle_data(x_test, y_test)
@@ -58,33 +58,30 @@ def train_model(n=3, version=1):
     y = number_to_one_host(y, NUMBER_OF_CLASSES)
     y_test = number_to_one_host(y_test, NUMBER_OF_CLASSES)
 
-    # model = build_cnn_model(300, NUMBER_OF_CLASSES)
-    if version == 1:
-        depth = n * 6 + 2
-    elif version == 2:
-        depth = n * 9 + 2
-    model = resnet_v1(x[0].shape, depth, NUMBER_OF_CLASSES)
-    """
-    model.compile(loss='categorical_crossentropy',
-                      optimizer=optimizers.Adam(lr=1e-3),
-                      metrics=['acc'])
-    """
+    if model_type == 'resnet':
+        if version == 1:
+            depth = n * 6 + 2
+        elif version == 2:
+            depth = n * 9 + 2
+        model_name = 'ResNet%dv%d' % (depth, version)
+        print(model_name)
+        model = resnet_v1(x[0].shape, depth, NUMBER_OF_CLASSES)
+    elif model_type == 'cnn':
+        print(model_type)
+        model = build_cnn_model(x[0].shape, NUMBER_OF_CLASSES)
+
     model.compile(loss='categorical_crossentropy',
                   optimizer=optimizers.Adam(lr=1e-3),
                   metrics=['acc'])
+    model.fit(x, y, epochs=5, batch_size=64)
+    print(model.evaluate(x_test, y_test))
     return model
-    # model = train_model()
-    # history = LossHistory()
-    # cnn_model.fit(x, y, epochs=5, batch_size=64)
-    # return cnn_model.evaluate(x_test, y_test)
 
 
-
-# channels = 1
-# rows = 300
-# nb_classes = 5
-#
-# # model = resnet.ResnetBuilder.build_resnet_18((channels, rows), nb_classes)
+# model = train_model()
+# history = LossHistory()
+# cnn_model.fit(x, y, epochs=5, batch_size=64)
+# return cnn_model.evaluate(x_test, y_test)
 #
 # # 创建一个实例history
 #
