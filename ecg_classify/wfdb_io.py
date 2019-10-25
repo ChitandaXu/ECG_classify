@@ -4,7 +4,7 @@
 import wfdb
 import pywt
 import numpy as np
-from ecg_classify.constants import NormalBeat, LBBBBeat, RBBBBeat, APCBeat, VPCBeat, DataSetType
+from ecg_classify.constants import NormalBeat, LBBBBeat, RBBBBeat, APCBeat, VPCBeat, LABEL_LIST
 
 
 def read_signal(data_number, samp_from=0, samp_to=None, channels=[0, 1], dir_path='../data/mit-bih'):
@@ -91,8 +91,8 @@ def heartbeat_factory(heartbeat_symbol):
         raise Exception('Invalid heartbeat type')
 
 
-def init_set(heartbeat, data_set_type=DataSetType.TRAINING):
-    if data_set_type == DataSetType.TRAINING:
+def init_set(heartbeat, is_training_set):
+    if is_training_set:
         if heartbeat.beat_type == APCBeat.beat_type:
             data_set = np.empty((2000, 300))
         else:
@@ -109,21 +109,19 @@ def init_set(heartbeat, data_set_type=DataSetType.TRAINING):
     return [cur_dict, data_set, template.copy(), template.copy(), template.copy(), template.copy()]
 
 
-def generate_sample_by_heartbeat(heartbeat_symbol, data_set_type, need_denoise=True):
+def generate_sample_by_heartbeat(heartbeat_symbol, is_training_set, need_denoise=True):
     """
     generate sample for training by specify heartbeat type
 
     :param heartbeat_symbol: HeartBeat Symbol, eg: 'N', 'L', 'R', 'A', 'V'
-    :param data_set_type: data set type, 'Training' or 'Test'
+    :param is_training_set: True means 'Training', False means 'Test'
     :param need_denoise: choose whether to denoise, default is True
     :return: sample for training
     """
-    if heartbeat_symbol not in ['N', 'L', 'R', 'A', 'V']:
+    if heartbeat_symbol not in LABEL_LIST:
         raise Exception("Invalid heartbeat type")
-    if not isinstance(data_set_type, DataSetType):
-        raise Exception("Data type is invalid, please specify 'TRAINING' or 'TEST'.")
     heartbeat = heartbeat_factory(heartbeat_symbol)
-    [cur_dict, data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = init_set(heartbeat, data_set_type)
+    [cur_dict, data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = init_set(heartbeat, is_training_set)
 
     keys = list(cur_dict.keys())
     for idx, val in enumerate(keys):

@@ -1,11 +1,3 @@
-from enum import Enum
-
-
-class DataSetType(Enum):
-    TRAINING = 0
-    TEST = 1
-
-
 class NormalBeat:
     beat_type = 'N'
     training_set_dict = {
@@ -93,4 +85,5 @@ class VPCBeat:
     }
 
 
-label_list = ['N', 'L', 'R', 'A', 'V']
+LABEL_LIST = ['N', 'L', 'R', 'A', 'V']
+NUMBER_OF_CLASSES = 5

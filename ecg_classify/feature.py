@@ -1,21 +1,27 @@
 import numpy as np
 import pywt
 from functools import reduce
-from ecg_classify.constants import DataSetType, label_list
+from ecg_classify.constants import LABEL_LIST
 from ecg_classify.wfdb_io import generate_sample_by_heartbeat, read_signal
 
 
-def get_rr_interval(heartbeat_symbol, data_set_type=DataSetType.TRAINING):
+def get_heartbeat_sample(heartbeat_symbol, is_training_set=True):
     [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = \
-        generate_sample_by_heartbeat(heartbeat_symbol, data_set_type)
+        generate_sample_by_heartbeat(heartbeat_symbol, is_training_set)
+    return data_set
+
+
+def get_rr_interval(heartbeat_symbol, is_training_set=True):
+    [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = \
+        generate_sample_by_heartbeat(heartbeat_symbol, is_training_set)
     anterior_rr_interval = r_loc_set - prev_r_loc_set
     posterior_rr_interval = next_r_loc_set - r_loc_set
     return np.array([anterior_rr_interval, posterior_rr_interval])
 
 
-def get_p_feature(heartbeat_symbol, data_set_type=DataSetType.TRAINING):
+def get_p_feature(heartbeat_symbol, is_training_set=True):
     [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = \
-        generate_sample_by_heartbeat(heartbeat_symbol, data_set_type)
+        generate_sample_by_heartbeat(heartbeat_symbol, is_training_set)
 
     # P region
     start = r_loc_set - ((r_loc_set - prev_r_loc_set) * 0.35).astype(int)
@@ -23,9 +29,9 @@ def get_p_feature(heartbeat_symbol, data_set_type=DataSetType.TRAINING):
     return calc_morph_feature(number_set, start, end, 'P')
 
 
-def get_t_feature(heartbeat_symbol, data_set_type=DataSetType.TRAINING):
+def get_t_feature(heartbeat_symbol, is_training_set=True):
     [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = \
-        generate_sample_by_heartbeat(heartbeat_symbol, data_set_type)
+        generate_sample_by_heartbeat(heartbeat_symbol, is_training_set)
 
     # T region
     start = r_loc_set + 22
@@ -33,9 +39,9 @@ def get_t_feature(heartbeat_symbol, data_set_type=DataSetType.TRAINING):
     return calc_morph_feature(number_set, start, end, 'T')
 
 
-def get_qrs_feature(heartbeat_symbol, data_set_type=DataSetType.TRAINING):
+def get_qrs_feature(heartbeat_symbol, is_training_set=True):
     [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = \
-        generate_sample_by_heartbeat(heartbeat_symbol, data_set_type)
+        generate_sample_by_heartbeat(heartbeat_symbol, is_training_set)
 
     # QRS region
     start = r_loc_set - 22
@@ -82,13 +88,18 @@ def calc_morph_feature(number_set, start, end, region):
     return np.array([kurtosis, skewness])
 
 
-def get_features(is_training_set=True):
-    if is_training_set:
-        ante_rr, post_rr = reduce((lambda x, y: np.hstack((x, y))), map(get_rr_interval, label_list))
-        p_kur, p_skew = reduce((lambda x, y: np.hstack((x, y))), map(get_p_feature, label_list))
-        t_kur, t_skew = reduce((lambda x, y: np.hstack((x, y))), map(get_t_feature, label_list))
-        qrs_kur, qrs_skew = reduce((lambda x, y: np.hstack((x, y))), map(get_qrs_feature, label_list))
+def get_features(is_training_set):
+    data_type = np.full(5, is_training_set)
+    ante_rr, post_rr = reduce((lambda x, y: np.hstack((x, y))), map(get_rr_interval, LABEL_LIST, data_type))
+    p_kur, p_skew = reduce((lambda x, y: np.hstack((x, y))), map(get_p_feature, LABEL_LIST, data_type))
+    t_kur, t_skew = reduce((lambda x, y: np.hstack((x, y))), map(get_t_feature, LABEL_LIST, data_type))
+    qrs_kur, qrs_skew = reduce((lambda x, y: np.hstack((x, y))), map(get_qrs_feature, LABEL_LIST, data_type))
     return np.vstack((ante_rr, post_rr, p_kur, p_skew, t_kur, t_skew, qrs_kur, qrs_skew)).transpose()
+
+
+def get_samples(is_training_set):
+    data_type = np.full(5, is_training_set)
+    return reduce((lambda x, y: np.vstack((x, y))), map(get_heartbeat_sample, LABEL_LIST, data_type))
 
 
 def get_labels(is_training_set):
