@@ -6,8 +6,7 @@ from keras.models import load_model
 from keras import optimizers
 from ecg_classify.constants import NUMBER_OF_CLASSES
 from ecg_classify.feature import get_samples, get_labels
-from ecg_classify.loss_history import LossHistory
-from ecg_classify.model import build_cnn_model
+from ecg_classify.model import build_cnn_model, ResnetBuilder
 
 
 def prepare_data():
@@ -58,13 +57,21 @@ def train_model():
     y = number_to_one_host(y, NUMBER_OF_CLASSES)
     y_test = number_to_one_host(y_test, NUMBER_OF_CLASSES)
 
-    cnn_model = build_cnn_model(300, NUMBER_OF_CLASSES)
-    cnn_model.compile(loss='categorical_crossentropy',
+    """
+    model = build_cnn_model(300, NUMBER_OF_CLASSES)
+    model.compile(loss='categorical_crossentropy',
                       optimizer=optimizers.Adam(lr=1e-3),
                       metrics=['acc'])
-    history = LossHistory()
-    cnn_model.fit(x, y, epochs=5, batch_size=64)
-    return cnn_model.evaluate(x_test, y_test)
+    """
+    model = ResnetBuilder().build_resnet_18((1, 300), NUMBER_OF_CLASSES)
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=optimizers.Adam(lr=1e-3),
+                  metrics=['acc'])
+    return model
+    # model = train_model()
+    # history = LossHistory()
+    # cnn_model.fit(x, y, epochs=5, batch_size=64)
+    # return cnn_model.evaluate(x_test, y_test)
 
 
 
