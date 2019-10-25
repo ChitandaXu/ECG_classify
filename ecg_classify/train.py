@@ -1,12 +1,13 @@
 import numpy as np
-import pandas as pd
-from sklearn.metrics import confusion_matrix, accuracy_score
-from keras.callbacks import ModelCheckpoint
-from keras.models import load_model
 from keras import optimizers
 from ecg_classify.constants import NUMBER_OF_CLASSES
 from ecg_classify.feature import get_samples, get_labels
-from ecg_classify.model import build_cnn_model, ResnetBuilder
+from ecg_classify.model import build_cnn_model
+from ecg_classify.resnet import resnet_v1
+# import pandas as pd
+# from sklearn.metrics import confusion_matrix, accuracy_score
+# from keras.callbacks import ModelCheckpoint
+# from keras.models import load_model
 
 
 def prepare_data():
@@ -48,7 +49,7 @@ def number_to_one_host(y, number_of_classes):
     return res
 
 
-def train_model():
+def train_model(n=3, version=1):
     x, y, x_test, y_test = prepare_data()
     x, y = shuffle_data(x, y)
     x_test, y_test = shuffle_data(x_test, y_test)
@@ -57,13 +58,17 @@ def train_model():
     y = number_to_one_host(y, NUMBER_OF_CLASSES)
     y_test = number_to_one_host(y_test, NUMBER_OF_CLASSES)
 
+    # model = build_cnn_model(300, NUMBER_OF_CLASSES)
+    if version == 1:
+        depth = n * 6 + 2
+    elif version == 2:
+        depth = n * 9 + 2
+    model = resnet_v1(x[0].shape, depth, NUMBER_OF_CLASSES)
     """
-    model = build_cnn_model(300, NUMBER_OF_CLASSES)
     model.compile(loss='categorical_crossentropy',
                       optimizer=optimizers.Adam(lr=1e-3),
                       metrics=['acc'])
     """
-    model = ResnetBuilder().build_resnet_18((1, 300), NUMBER_OF_CLASSES)
     model.compile(loss='categorical_crossentropy',
                   optimizer=optimizers.Adam(lr=1e-3),
                   metrics=['acc'])
