@@ -1,11 +1,13 @@
 import numpy as np
 from keras import optimizers
+from keras.models import load_model, Model
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import GradientBoostingClassifier
 from ecg_classify.constants import NUMBER_OF_CLASSES
 from ecg_classify.feature import get_samples, get_labels
 from ecg_classify.model import build_cnn_model
 from ecg_classify.resnet import resnet_v1
-# import pandas as pd
-# from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score
 # from keras.callbacks import ModelCheckpoint
 # from keras.models import load_model
 
@@ -15,6 +17,12 @@ def prepare_data():
     x_test = get_samples(False)
     y = get_labels(True)
     y_test = get_labels(False)
+
+    # standard scale
+    x = StandardScaler().fit_transform(x)
+    x_test = StandardScaler().fit_transform(x_test)
+
+    # expand dimensions
     x = np.expand_dims(x, axis=2)
     x_test = np.expand_dims(x_test, axis=2)
     return x, y, x_test, y_test
@@ -73,9 +81,21 @@ def train_model(model_type='cnn', n=3, version=1):
     model.compile(loss='categorical_crossentropy',
                   optimizer=optimizers.Adam(lr=1e-3),
                   metrics=['acc'])
-    model.fit(x, y, epochs=5, batch_size=64)
+    history = model.fit(x, y, epochs=5, batch_size=64)
     print(model.evaluate(x_test, y_test))
-    return model
+    model.save("model.h5")
+    inner_model = Model(inputs=model.input, outputs=model.get_layer('flatten_1').output)
+    features = inner_model.predict(x)
+    gbr = GradientBoostingClassifier(n_estimators=300, max_depth=2, min_samples_split=2, learning_rate=0.1)
+    gbr.fit(features, y.ravel())
+
+    # compute test accuracy
+    x_test = inner_model.predict(x_test)
+    y_test_pred = gbr.predict(x_test)
+    test_score = accuracy_score(y_test, y_test_pred)
+    print(test_score)
+
+    return history
 
 
 # model = train_model()
