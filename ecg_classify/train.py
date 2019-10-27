@@ -87,12 +87,13 @@ def train_model(model_type='cnn', n=3, version=1):
     inner_model = Model(inputs=model.input, outputs=model.get_layer('flatten_1').output)
     features = inner_model.predict(x)
     gbr = GradientBoostingClassifier(n_estimators=300, max_depth=2, min_samples_split=2, learning_rate=0.1)
-    gbr.fit(features, y.ravel())
+    y_num = one_hot_to_number(y)
+    gbr.fit(features, y_num)
 
     # compute test accuracy
     x_test = inner_model.predict(x_test)
     y_test_pred = gbr.predict(x_test)
-    test_score = accuracy_score(y_test, y_test_pred)
+    test_score = accuracy_score(one_hot_to_number(y_test), y_test_pred)
     print(test_score)
 
     return history

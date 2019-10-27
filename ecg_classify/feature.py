@@ -5,6 +5,15 @@ from ecg_classify.constants import LABEL_LIST
 from ecg_classify.wfdb_io import generate_sample_by_heartbeat, read_signal
 
 
+def get_wavelet_feature(heartbeat_symbol, is_training_set=True):
+    [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = \
+        generate_sample_by_heartbeat(heartbeat_symbol, is_training_set)
+    start = r_loc_set - 150
+    end = r_loc_set + 150
+    coeffs = calc_wavelet_feature(number_set, start, end)
+    return reduce((lambda x, y: np.hstack((x, y))), coeffs).transpose()
+
+
 def get_heartbeat_sample(heartbeat_symbol, is_training_set=True):
     [data_set, r_loc_set, prev_r_loc_set, next_r_loc_set, number_set] = \
         generate_sample_by_heartbeat(heartbeat_symbol, is_training_set)
@@ -50,22 +59,32 @@ def get_qrs_feature(heartbeat_symbol, is_training_set=True):
 
 
 def calc_wavelet_feature(number_set, start, end):
-    signal = np.zeros(650000)
     pre_val = -1
+    # count length
+    signal = read_signal(number_set[0])
+    sig = signal[start[0]: end[0]]
+    [a4, d4, d3, d2, d1] = pywt.wavedec(sig, 'db4', level=4)
+
+    cA4 = np.empty((len(number_set), len(a4)))
+    cD4 = np.empty((len(number_set), len(d4)))
+    cD3 = np.empty((len(number_set), len(d3)))
+    cD2 = np.empty((len(number_set), len(d2)))
+    cD1 = np.empty((len(number_set), len(d1)))
+
     for idx, val in enumerate(number_set):
         if val != pre_val:
             signal = read_signal(val)
             pre_val = val
         sig = signal[start[idx]: end[idx]]
         coeffs = pywt.wavedec(sig, 'db4', level=4)
-        cA4, cD4, cD3, cD2, cD1 = coeffs
-    return cA4, cD4, cD3, cD2
+        cA4[idx], cD4[idx], cD3[idx], cD2[idx], cD1[idx] = coeffs
+    return cA4, cD4, cD3, cD2, cD1
 
 
 def calc_morph_feature(number_set, start, end, region):
     if region not in ['T', 'P', 'QRS']:
         raise Exception("region is invalid, please specify 'T' or 'P' or 'QRS'")
-    signal = np.zeros(650000)
+    # signal = np.zeros(650000)
     pre_val = -1
     kurtosis = np.zeros(len(number_set))
     skewness = np.zeros(len(number_set))
@@ -94,7 +113,8 @@ def get_features(is_training_set):
     p_kur, p_skew = reduce((lambda x, y: np.hstack((x, y))), map(get_p_feature, LABEL_LIST, data_type))
     t_kur, t_skew = reduce((lambda x, y: np.hstack((x, y))), map(get_t_feature, LABEL_LIST, data_type))
     qrs_kur, qrs_skew = reduce((lambda x, y: np.hstack((x, y))), map(get_qrs_feature, LABEL_LIST, data_type))
-    return np.vstack((ante_rr, post_rr, p_kur, p_skew, t_kur, t_skew, qrs_kur, qrs_skew)).transpose()
+    wavelets = reduce((lambda x, y: np.hstack((x, y))), map(get_wavelet_feature, LABEL_LIST, data_type))
+    return np.vstack((ante_rr, post_rr, p_kur, p_skew, t_kur, t_skew, qrs_kur, qrs_skew, wavelets)).transpose()
 
 
 def get_samples(is_training_set):
