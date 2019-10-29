@@ -1,31 +1,51 @@
 import numpy as np
 from keras import optimizers
+from keras.callbacks.callbacks import ModelCheckpoint, History
 from keras.models import load_model, Model
+from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import GradientBoostingClassifier
 from ecg_classify.constants import NUMBER_OF_CLASSES
-from ecg_classify.feature import get_samples, get_labels
+from ecg_classify.feature import get_samples, get_labels, get_features
+from ecg_classify.loss_history import LossHistory
 from ecg_classify.model import build_cnn_model
 from ecg_classify.resnet import resnet_v1
-from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import accuracy_score
 # from keras.callbacks import ModelCheckpoint
 # from keras.models import load_model
 
 
-def prepare_data():
-    x = get_samples(True)
-    x_test = get_samples(False)
-    y = get_labels(True)
+def prepare_data(intra=False, raw=False):
+    if raw:
+        x_train = get_samples(True)
+        x_test = get_samples(False)
+    else:
+        x_train = get_features(True)
+        x_test = get_features(False)
+    y_train = get_labels(True)
     y_test = get_labels(False)
+    if intra:
+        x = np.vstack((x_train, x_test))
+        y = np.concatenate((y_train, y_test))
+        x_train, x_test, y_train, y_test = train_test_split(
+            x, y, test_size=0.2, random_state=42)
 
     # standard scale
-    x = StandardScaler().fit_transform(x)
+    x_train = StandardScaler().fit_transform(x_train)
     x_test = StandardScaler().fit_transform(x_test)
 
     # expand dimensions
-    x = np.expand_dims(x, axis=2)
+    x_train = np.expand_dims(x_train, axis=2)
     x_test = np.expand_dims(x_test, axis=2)
-    return x, y, x_test, y_test
+
+    # shuffle data
+    x_train, y_train = shuffle_data(x_train, y_train)
+    x_test, y_test = shuffle_data(x_test, y_test)
+
+    # change number to one hot array
+    y_train = number_to_one_hot(y_train, NUMBER_OF_CLASSES)
+    y_test = number_to_one_hot(y_test, NUMBER_OF_CLASSES)
+    return x_train, y_train, x_test, y_test
 
 
 def shuffle_data(x, y):
@@ -47,7 +67,7 @@ def one_hot_to_number(y):
     return res.astype(np.int)
 
 
-def number_to_one_host(y, number_of_classes):
+def number_to_one_hot(y, number_of_classes):
     size = np.shape(y)[0]
     res = np.zeros((size, number_of_classes))
     for idx in range(size):
@@ -57,15 +77,7 @@ def number_to_one_host(y, number_of_classes):
     return res
 
 
-def train_model(model_type='cnn', n=3, version=1):
-    x, y, x_test, y_test = prepare_data()
-    x, y = shuffle_data(x, y)
-    x_test, y_test = shuffle_data(x_test, y_test)
-
-    print('Total training size is ', x.shape[0])
-    y = number_to_one_host(y, NUMBER_OF_CLASSES)
-    y_test = number_to_one_host(y_test, NUMBER_OF_CLASSES)
-
+def create_model(dimension, model_type, version=1, n=3):
     if model_type == 'resnet':
         if version == 1:
             depth = n * 6 + 2
@@ -73,21 +85,25 @@ def train_model(model_type='cnn', n=3, version=1):
             depth = n * 9 + 2
         model_name = 'ResNet%dv%d' % (depth, version)
         print(model_name)
-        model = resnet_v1(x[0].shape, depth, NUMBER_OF_CLASSES)
+        model = resnet_v1(dimension, depth, NUMBER_OF_CLASSES)
     elif model_type == 'cnn':
         print(model_type)
-        model = build_cnn_model(x[0].shape, NUMBER_OF_CLASSES)
+        model = build_cnn_model(dimension, NUMBER_OF_CLASSES)
+    return model
 
+
+def train_model(model, x, y):
     model.compile(loss='categorical_crossentropy',
                   optimizer=optimizers.Adam(lr=1e-3),
                   metrics=['acc'])
-    history = model.fit(x, y, epochs=5, batch_size=64)
-    print(model.evaluate(x_test, y_test))
-    model.save("model.h5")
+    return model.fit(x, y, epochs=20, batch_size=64)
+
+"""
+def use_inner_model(model, x_train, y_train, x_test, y_test):
     inner_model = Model(inputs=model.input, outputs=model.get_layer('flatten_1').output)
-    features = inner_model.predict(x)
+    features = inner_model.predict(x_train)
     gbr = GradientBoostingClassifier(n_estimators=300, max_depth=2, min_samples_split=2, learning_rate=0.1)
-    y_num = one_hot_to_number(y)
+    y_num = one_hot_to_number(y_train)
     gbr.fit(features, y_num)
 
     # compute test accuracy
@@ -95,9 +111,7 @@ def train_model(model_type='cnn', n=3, version=1):
     y_test_pred = gbr.predict(x_test)
     test_score = accuracy_score(one_hot_to_number(y_test), y_test_pred)
     print(test_score)
-
-    return history
-
+"""
 
 # model = train_model()
 # history = LossHistory()
