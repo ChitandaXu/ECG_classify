@@ -15,7 +15,7 @@ from sklearn.metrics import accuracy_score
 # from keras.models import load_model
 
 
-def prepare_data(intra=False, raw=False):
+def prepare_data(intra=False, raw=False, expand_dim=False, one_hot=False):
     if raw:
         x_train = get_samples(True)
         x_test = get_samples(False)
@@ -35,16 +35,18 @@ def prepare_data(intra=False, raw=False):
     x_test = StandardScaler().fit_transform(x_test)
 
     # expand dimensions
-    x_train = np.expand_dims(x_train, axis=2)
-    x_test = np.expand_dims(x_test, axis=2)
+    if expand_dim:
+        x_train = np.expand_dims(x_train, axis=2)
+        x_test = np.expand_dims(x_test, axis=2)
 
     # shuffle data
     x_train, y_train = shuffle_data(x_train, y_train)
     x_test, y_test = shuffle_data(x_test, y_test)
 
     # change number to one hot array
-    y_train = number_to_one_hot(y_train, NUMBER_OF_CLASSES)
-    y_test = number_to_one_hot(y_test, NUMBER_OF_CLASSES)
+    if one_hot:
+        y_train = number_to_one_hot(y_train, NUMBER_OF_CLASSES)
+        y_test = number_to_one_hot(y_test, NUMBER_OF_CLASSES)
     return x_train, y_train, x_test, y_test
 
 
@@ -58,7 +60,7 @@ def shuffle_data(x, y):
     return x, y
 
 
-def one_hot_to_number(y):
+def change(y):
     size = np.shape(y)[0]
     res = np.zeros(size)
     for idx in range(size):
@@ -75,6 +77,10 @@ def number_to_one_hot(y, number_of_classes):
         dummy[int(y[idx])] = 1
         res[idx, :] = dummy
     return res
+
+
+def one_hot_to_number(y):
+    return np.array([np.where(r == 1)[0][0] for r in y])
 
 
 def create_model(dimension, model_type, version=1, n=3):

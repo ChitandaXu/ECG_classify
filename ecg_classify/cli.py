@@ -2,17 +2,17 @@
 
 """Console script for ecg_classify."""
 import sys
+import os
 import click
 from sklearn.metrics import confusion_matrix
-from sklearn.model_selection import StratifiedKFold
-
 from ecg_classify.train import train_model, one_hot_to_number, create_model, prepare_data
 
 
 @click.command()
 def main(args=None):
     """Console script for ecg_classify."""
-    x, y, x_test, y_test = prepare_data(True, True)
+    os.chdir('C:/Users/Xuexi/PycharmProjects/ECG_classify/ecg_classify')
+    x, y, x_test, y_test = prepare_data(intra=False, raw=False, expand_dim=False)
     print('Total training size is:', x.shape[0])
     model_type = 'cnn'
     dimension = x[0].shape

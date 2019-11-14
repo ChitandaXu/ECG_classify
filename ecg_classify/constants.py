@@ -85,5 +85,21 @@ class VPCBeat:
     }
 
 
+def heartbeat_factory(symbol):
+    if symbol == 'N':
+        return NormalBeat()
+    elif symbol == 'L':
+        return LBBBBeat()
+    elif symbol == 'R':
+        return RBBBBeat()
+    elif symbol == 'A':
+        return APCBeat()
+    elif symbol == 'V':
+        return VPCBeat()
+    else:
+        raise Exception('Invalid heartbeat type')
+
+
 LABEL_LIST = ['N', 'L', 'R', 'A', 'V']
-NUMBER_OF_CLASSES = 5
+CLASS_NUM = 5
+FEATURE_NUM = 9
