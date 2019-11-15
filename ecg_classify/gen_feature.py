@@ -1,5 +1,6 @@
 import numpy as np
 import pywt
+
 from ecg_classify.wfdb_io import read_sample, read_symbol, read_sig
 
 # num_list = [100, 101, 103, 105, 106, 108, 109, 111, 112, 116, 118, 119, 124, 200, 201, 202, 203, 205, 207, 208, 209,
@@ -20,13 +21,13 @@ def gen_feature(num, rescale=True):
     p_end = (sample - pre_rr * 0.05).astype(int)
     t_start = (sample + post_rr * 0.05).astype(int)
     t_end = (sample + post_rr * 0.65).astype(int)
-    r_start = (sample - pre_rr * 0.05).astype(int)
-    r_end = (sample + post_rr * 0.05).astype(int)
+    r_start = (sample - 22).astype(int)
+    r_end = (sample + 22).astype(int)
+    rescale_coefficient = __compute_rescale_coefficient(num)
     p_kur, p_skew = __compute_morph(sig, p_start, p_end)
     t_kur, t_skew = __compute_morph(sig, t_start, t_end)
     r_kur, r_skew = __compute_morph(sig, r_start, r_end)
     if rescale:
-        rescale_coefficient = __compute_rescale_coefficient(num)
         pre_rr = pre_rr / rescale_coefficient
         post_rr = post_rr / rescale_coefficient
     return np.array([pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew, symbol]).transpose()

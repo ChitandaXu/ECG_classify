@@ -5,8 +5,7 @@ from keras.models import load_model, Model
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import GradientBoostingClassifier
-from ecg_classify.constants import NUMBER_OF_CLASSES
-from ecg_classify.feature import get_samples, get_labels, get_features
+from ecg_classify.constants import CLASS_NUM
 from ecg_classify.loss_history import LossHistory
 from ecg_classify.model import build_cnn_model
 from ecg_classify.resnet import resnet_v1
@@ -48,16 +47,6 @@ def prepare_data(intra=False, raw=False, expand_dim=False, one_hot=False):
         y_train = number_to_one_hot(y_train, NUMBER_OF_CLASSES)
         y_test = number_to_one_hot(y_test, NUMBER_OF_CLASSES)
     return x_train, y_train, x_test, y_test
-
-
-def shuffle_data(x, y):
-    if x.shape[0] != y.shape[0]:
-        raise Exception("Invalid input, x and y should be same length in dimension 0")
-    # np.random.seed(7)
-    order = np.random.permutation(np.arange(x.shape[0]))
-    x = x[order]
-    y = y[order]
-    return x, y
 
 
 def change(y):

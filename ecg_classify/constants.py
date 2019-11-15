@@ -103,3 +103,5 @@ def heartbeat_factory(symbol):
 LABEL_LIST = ['N', 'L', 'R', 'A', 'V']
 CLASS_NUM = 5
 FEATURE_NUM = 9
+DROP_LIST = ['8']
+FREQUENCY = 360
