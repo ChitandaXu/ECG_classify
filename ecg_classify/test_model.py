@@ -3,20 +3,35 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from ecg_classify.constants import DROP_LIST
+from sklearn import tree
+import pydot
+
 from ecg_classify.gen_data import gen_label, read_data
 from ecg_classify.utils import shuffle_data
 
 
 def test_result():
-    df_train, df_test = read_data()
-    X_train = df_train.drop(DROP_LIST, axis=1).values
-    X_test = df_test.drop(DROP_LIST, axis=1).values
+    df_train, df_test = read_data(True)
+    X_train = df_train.drop('16', axis=1).values
+    X_test = df_test.drop('16', axis=1).values
     y_train = gen_label(True)
     y_test = gen_label(False)
     X_train, y_train = shuffle_data(X_train, y_train)
     clf = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=0)
+    # clf = tree.DecisionTreeClassifier(max_depth=5, random_state=0)
     clf.fit(X_train, y_train)
+    feature_names = ['pre_rr', 'post_rr', 'p_kur', 'p_skew', 't_kur', 't_skew', 'r_kur', 'r_skew']
+    target_names = ['N', 'L', 'R', 'A', 'V']
+    tree.export_graphviz(clf, out_file='tree.dot',
+                    feature_names=feature_names,
+                    class_names=target_names,
+                    rounded=True, proportion=False,
+                    precision=2, filled=True)
+
+    (graph,) = pydot.graph_from_dot_file('tree.dot')
+    graph.write_png('somefile.png')
+
+
     y_pred = clf.predict(X_test)
     print(accuracy_score(y_true=y_test, y_pred=y_pred))
     print(confusion_matrix(y_true=y_test, y_pred=y_pred))
@@ -25,6 +40,17 @@ def test_result():
     # y = np.concatenate((y_train, y_test))
     # y_ = clf.predict(X)
     # print(accuracy_score(y_true=y, y_pred=y_))
+    t_kur_1 = df_train[0: 4000]['0']
+    t_kur_2 = df_train[4000: 8000]['0']
+    t_kur_3 = df_train[8000: 12000]['0']
+    t_kur_4 = df_train[12000: 16000]['0']
+    t_kur_5 = df_train[16000: 20000]['0']
+
+    t_kur_1 = df_test[0: 1000]['0']
+    t_kur_2 = df_test[1000: 2000]['0']
+    t_kur_3 = df_test[2000: 3000]['0']
+    t_kur_4 = df_test[3000: 4000]['0']
+    t_kur_5 = df_test[4000: 5000]['0']
 
 
 # compute dataset shift

@@ -103,3 +103,7 @@ ENV/
 
 # data
 data/
+*.csv
+
+# old_code
+ecg_classify/old/
