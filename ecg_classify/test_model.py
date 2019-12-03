@@ -6,14 +6,18 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn import tree
 import pydot
 
+from ecg_classify.constants import FEATURE_NUM
 from ecg_classify.gen_data import gen_label, read_data
 from ecg_classify.utils import shuffle_data
+
+import os
+os.chdir('./ecg_classify')
 
 
 def test_result():
     df_train, df_test = read_data(True)
-    X_train = df_train.drop('16', axis=1).values
-    X_test = df_test.drop('16', axis=1).values
+    X_train = df_train.drop(str(FEATURE_NUM - 1), axis=1).values
+    X_test = df_test.drop(str(FEATURE_NUM - 1), axis=1).values
     y_train = gen_label(True)
     y_test = gen_label(False)
     X_train, y_train = shuffle_data(X_train, y_train)

@@ -1,110 +1,29 @@
-normal_beat = {
-    'train_dict': {
-        101: 1000,
-        103: 1000,
-        108: 1000,
-        112: 1000
-    },
-    'test_dict': {
-        100: 1000
-    }
-}
-
-lbbb_beat = {
-    'train_dict': {
-        109: 1500,
-        111: 1500,
-        207: 1000
-    },
-    'test_dict': {
-        214: 1000
-    }
-}
-
-rbbb_beat = {
-    'train_dict': {
-        118: 1500,
-        124: 1500,
-        231: 1000
-    },
-    'test_dict': {
-        212: 1000
-    }
-}
-
-apc_beat = {
-    'train_dict': {
-        101: 3,
-        108: 4,
-        112: 2,
-        118: 96,
-        124: 2,
-        200: 30,
-        207: 106,
-        209: 383,
-        232: 1374
-    },
-    'test_dict': {
-        100: 33,
-        201: 30,
-        202: 36,
-        205: 3,
-        213: 25,
-        220: 94,
-        222: 207,
-        223: 72
-    }
-}
-
-vpc_beat = {
-    'train_dict': {
-        106: 520,
-        116: 109,
-        118: 16,
-        119: 443,
-        124: 47,
-        200: 825,
-        203: 444,
-        208: 991,
-        215: 164,
-        221: 79,
-        228: 362
-    },
-    'test_dict': {
-        105: 41,
-        201: 198,
-        205: 71,
-        214: 256,
-        219: 64,
-        223: 370
-    }
-}
-
-
-def __heartbeat_factory(symbol):
-    if symbol == 'N':
-        return normal_beat
-    elif symbol == 'L':
-        return lbbb_beat
-    elif symbol == 'R':
-        return rbbb_beat
-    elif symbol == 'A':
-        return apc_beat
-    elif symbol == 'V':
-        return vpc_beat
-    else:
-        raise Exception('Invalid heartbeat type')
-
-
-def heartbeat_factory(symbol, is_training):
-    heartbeat = __heartbeat_factory(symbol)
-    if is_training:
-        return heartbeat['train_dict']
-    else:
-        return heartbeat['test_dict']
-
-
-LABEL_LIST = ['N', 'L', 'R', 'A', 'V']
 CLASS_NUM = 5
-FEATURE_NUM = 17
+FEATURE_NUM = 25
 FREQUENCY = 360
+
+N_LABEL = ('N', 'L', 'R', 'e', 'j')
+S_LABEL = ('A', 'a', 'J', 'S')
+V_LABEL = ('V', 'E')
+F_LABEL = 'F'
+Q_LABEL = ('/', 'f', 'Q')
+
+NUM_TUPLE = (100, 101, 103, 105, 106, 107, 108, 109, 111, 112,
+             113, 114, 115, 116, 117, 118, 119, 121, 122, 123,
+             124, 200, 201, 202, 203, 205, 207, 208, 209, 210,
+             212, 213, 214, 215, 217, 219, 220, 221, 222, 223,
+             228, 230, 231, 232, 233, 234)
+
+LABEL_DICT = {'N': N_LABEL,
+              'S': S_LABEL,
+              'V': V_LABEL,
+              'F': F_LABEL,
+              'Q': Q_LABEL}
+
+SYMBOL_TUPLE = ('N', 'S', 'V', 'F', 'Q')
+
+
+DS1 = [101, 106, 107, 108, 109, 112, 114, 115, 116, 118, 119, 122,
+       124, 201, 203, 205, 207, 208, 209, 215, 220, 223, 230]
+DS2 = [100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212,
+       213, 214, 217, 219, 221, 222, 228, 231, 232, 233, 234]
