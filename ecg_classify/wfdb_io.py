@@ -23,3 +23,11 @@ def __read_ann(data_number, sampfrom=0, sampto=None, dir_path='../data/mit-bih')
     file_path = dir_path + "/" + str(data_number)
     ann = wfdb.rdann(file_path, extension='atr', sampfrom=sampfrom, sampto=sampto)
     return ann
+
+
+def compute_number(num, labels):
+    symbols = read_symbol(num)[2: -2]  # 3nd -> (n-2)th
+    res = 0
+    for label in labels:
+        res += len(symbols[symbols == label])
+    return res

@@ -35,6 +35,7 @@ def gen_feature(num):
     post_rr = rr[1:]
     sample = sample[1:-1]
     symbol = symbol[1:-1]
+
     p_start = (sample - pre_rr * 0.35).astype(int)
     p_end = (sample - pre_rr * 0.05).astype(int)
     t_start = (sample + post_rr * 0.05).astype(int)
@@ -51,19 +52,25 @@ def gen_feature(num):
     r_kur, r_skew = __compute_morph(sig, r_start, r_end)
 
     pre_rr_f, post_rr_f, p_kur_f, p_skew_f, t_kur_f, t_skew_f, r_kur_f, r_skew_f = \
-        list(map(lambda x: x[:-1], [pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew]))
-    pre_rr_m, post_rr_m, p_kur_m, p_skew_m, t_kur_m, t_skew_m, r_kur_m, r_skew_m, symbol = \
-        list(map(lambda x: x[1:], [pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew, symbol]))
+        list(map(lambda x: x[:-2], [pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew]))
+    pre_rr_m, post_rr_m, p_kur_m, p_skew_m, t_kur_m, t_skew_m, r_kur_m, r_skew_m = \
+        list(map(lambda x: x[1:-1], [pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew]))
+    pre_rr_b, post_rr_b, p_kur_b, p_skew_b, t_kur_b, t_skew_b, r_kur_b, r_skew_b = \
+        list(map(lambda x: x[2:], [pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew]))  # 4nd -> (n-1)th
+    symbol = symbol[1: -1]
 
     # rescale:
     pre_rr_m = pre_rr_m / rescale_x
     post_rr_m = post_rr_m / rescale_x
     pre_rr_f = pre_rr_f / rescale_x
     post_rr_f = post_rr_f / rescale_x
+    pre_rr_b = pre_rr_b / rescale_x
+    post_rr_b = pre_rr_b / rescale_x
     # return np.array([pre_rr_m, post_rr_m, p_kur_m, p_skew_m, t_kur_m, t_skew_m, r_kur_m, r_skew_m,
     #                  symbol]).transpose()
-    return np.array([pre_rr_m, post_rr_m, p_kur_m, p_skew_m, t_kur_m, t_skew_m, r_kur_m, r_skew_m,
+    return np.vstack([pre_rr_m, post_rr_m, p_kur_m, p_skew_m, t_kur_m, t_skew_m, r_kur_m, r_skew_m,
                      pre_rr_f, post_rr_f, p_kur_f, p_skew_f, t_kur_f, t_skew_f, r_kur_f, r_skew_f,
+                     pre_rr_b, post_rr_b, p_kur_b, p_skew_b, t_kur_b, t_skew_b, r_kur_b, r_skew_b,
                      symbol]).transpose()
 
 

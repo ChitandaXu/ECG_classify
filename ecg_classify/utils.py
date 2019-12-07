@@ -2,14 +2,13 @@ import numpy as np
 import pywt
 
 
-def shuffle_data(x, y):
-    if x.shape[0] != y.shape[0]:
-        raise Exception("Invalid input, x and y should be same length in dimension 0")
+def shuffle_data(*args):
     # np.random.seed(7)
-    order = np.random.permutation(np.arange(x.shape[0]))
-    x = x[order]
-    y = y[order]
-    return x, y
+    x = args[0]
+    order = np.random.permutation(np.arange(len(x)))
+    for i in len(args):
+        args[i] = args[i][order]
+    return args
 
 
 def denoise(sig):
