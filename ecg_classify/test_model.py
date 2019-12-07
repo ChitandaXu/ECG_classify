@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import tree
 import pydot
+import time
 
 from ecg_classify.constants import FEATURE_NUM
 from ecg_classify.gen_data import gen_label, read_data
@@ -15,7 +16,10 @@ os.chdir('./ecg_classify')
 
 
 def test_result():
+    start_time = time.time()
     df_train, df_test = read_data(True)
+    end_time = time.time()
+    print("cost time:%.2f s" % (end_time - start_time))
     X_train = df_train.drop(str(FEATURE_NUM - 1), axis=1).values
     X_test = df_test.drop(str(FEATURE_NUM - 1), axis=1).values
     y_train = gen_label(True)
