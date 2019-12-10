@@ -1,89 +1,47 @@
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn import tree
-import pydot
-
 from ecg_classify.constants import FEATURE_NUM
 from ecg_classify.gen_data import gen_label, read_data
-from ecg_classify.utils import shuffle_data
-from sklearn.ensemble import VotingClassifier
 from sklearn.utils import shuffle
-from scipy import stats
 
 import os
 os.chdir('./ecg_classify')
 
-df_train, df_test = read_data(True)
-X_train1 = df_train[['0', '1', '2', '3', '4', '5', '6', '7']].values
-X_test1 = df_test[['0', '1', '2', '3', '4', '5', '6', '7']].values
-X_train2 = df_train[['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15']].values
-X_test2 = df_test[['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15']].values
-X_train = df_train.drop(str(FEATURE_NUM - 1), axis=1).values
-X_test = df_test.drop(str(FEATURE_NUM - 1), axis=1).values
 
-y_train = gen_label(True)
-y_test = gen_label(False)
+def test_model():
+    start_time = time.time()
+    df_train, df_test = read_data()
+    end_time = time.time()
+    print("consume time: %.2f" % (end_time - start_time))
 
-X_train, y_train, X_train1, X_train2 = shuffle(X_train, y_train, X_train1, X_train2)
-clf0 = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=0)
-clf1 = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=0)
-clf2 = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=0)
-clf0.fit(X_train, y_train)
-clf1.fit(X_train1, y_train)
-clf2.fit(X_train2, y_train)
+    X_train = df_train.drop(str(FEATURE_NUM), axis=1).values
+    X_test = df_test.drop(str(FEATURE_NUM), axis=1).values
 
-# eclf = VotingClassifier(estimators=[('rf', clf0), ('rf', clf1), ('rf', clf2)], voting='hard')
+    y_train = gen_label(True)
+    y_test = gen_label(False)
 
-# y_pred = eclf.predict(X_test)
-y_pred0 = clf0.predict(X_test)
-y_pred1 = clf1.predict(X_test1)
-y_pred2 = clf2.predict(X_test2)
+    X_train, y_train = shuffle(X_train, y_train)
+    clf = RandomForestClassifier(n_estimators=100, max_depth=8, random_state=0)
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
 
-print(accuracy_score(y_true=y_test, y_pred=y_pred0))
-print(accuracy_score(y_true=y_test, y_pred=y_pred1))
-print(accuracy_score(y_true=y_test, y_pred=y_pred2))
-
-print(confusion_matrix(y_true=y_test, y_pred=y_pred0))
-print(confusion_matrix(y_true=y_test, y_pred=y_pred1))
-print(confusion_matrix(y_true=y_test, y_pred=y_pred2))
-
-y_pred = clf0.predict(X_train)
-print(confusion_matrix(y_true=y_train, y_pred=y_train))
+    print(accuracy_score(y_true=y_test, y_pred=y_pred))
+    print(confusion_matrix(y_true=y_test, y_pred=y_pred))
 
 # X = np.concatenate((X_train, X_test))
 # y = np.concatenate((y_train, y_test))
 # y_ = clf.predict(X)
 # print(accuracy_score(y_true=y, y_pred=y_))
-t_kur_1 = df_train[0: 4000]['0']
-t_kur_2 = df_train[4000: 8000]['0']
-t_kur_3 = df_train[8000: 12000]['0']
-t_kur_4 = df_train[12000: 16000]['0']
-t_kur_5 = df_train[16000: 20000]['0']
-
-t_kur_1 = df_test[0: 1000]['0']
-t_kur_2 = df_test[1000: 2000]['0']
-t_kur_3 = df_test[2000: 3000]['0']
-t_kur_4 = df_test[3000: 4000]['0']
-t_kur_5 = df_test[4000: 5000]['0']
 
 
-def vote_res(y1, y2, y3):
-    n = len(y1)
-    y = np.vstack([y1, y2, y3])
-    res = np.zeros(n)
-    for i in range(n):
-        res[i] = stats.mode(y[:, i])[0][0]
-    return res
-
-
-# compute dataset shift
 def compute_dataset_shift():
     df_train, df_test = read_data()
-    X_train = df_train.drop('8', axis=1).values
-    X_test = df_test.drop('8', axis=1).values
+    X_train = df_train.drop(str(FEATURE_NUM), axis=1).values
+    X_test = df_test.drop(str(FEATURE_NUM), axis=1).values
     y_train = np.full(20000, 0)
     y_test = np.full(5000, 1)
     X = np.vstack((X_train, X_test))
