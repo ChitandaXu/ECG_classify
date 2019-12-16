@@ -95,7 +95,7 @@ def __compute_rescale_x(num):
 
 class Strategy:
     def execute(self):
-        return;
+        return
 
 
 class Skew(Strategy):
