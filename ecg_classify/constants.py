@@ -81,7 +81,12 @@ vpc_beat = {
 }
 
 unknown_beat = {
-
+    'train_dict': {
+        107: 2000
+    },
+    'test_dict': {
+        217: 1000
+    }
 }
 
 
@@ -96,6 +101,8 @@ def __heartbeat_factory(symbol):
         return apc_beat
     elif symbol == 'V':
         return vpc_beat
+    elif symbol == '/':
+        return unknown_beat
     else:
         raise Exception('Invalid heartbeat type')
 
@@ -108,8 +115,10 @@ def heartbeat_factory(symbol, is_training):
         return heartbeat['test_dict']
 
 
-LABEL_LIST = ['N', 'L', 'R', 'A', 'V']
-CLASS_NUM = 5
+LABEL_LIST = ['N', 'L', 'R', 'A', 'V', '/']
+CLASS_NUM = 6
+TRAIN_SIZE = 4000
+TEST_SIZE = 1000
 DIM = 31
 # DIM = 553
 FEATURE_NUM = DIM - 1

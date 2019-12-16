@@ -14,7 +14,7 @@ os.chdir('./ecg_classify')
 
 def test_model():
     start_time = time.time()
-    df_train, df_test = read_data()
+    df_train, df_test = read_data(True)
     end_time = time.time()
     print("consume time: %.2f" % (end_time - start_time))
 

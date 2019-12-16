@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import pandas as pd
-from ecg_classify.constants import DIM, heartbeat_factory
+from ecg_classify.constants import DIM, heartbeat_factory, CLASS_NUM, TRAIN_SIZE, TEST_SIZE, LABEL_LIST
 from ecg_classify.gen_feature import gen_feature
 
 
@@ -28,32 +28,32 @@ def gen_data(symbol, is_training=True):
         val = heartbeat[num]
         res[cur: cur + val] = feature[feature[:, -1] == symbol][0: val]
         cur = cur + val
-    if symbol == 'A':
-        half = int(res.shape[0] / 2)
+    if symbol == 'A' or (symbol == '/' and is_training):
+        half = res.shape[0] // 2
         res = res[0: half]
         res = np.concatenate([res, res])
     return res
 
 
-def gen_label(is_training_set):
+def gen_label(is_training_set=True):
     if is_training_set:
-        return np.hstack((np.full(4000, 0), np.full(4000, 1), np.full(4000, 2), np.full(4000, 3), np.full(4000, 4)))
+        scale = TRAIN_SIZE
     else:
-        return np.hstack((np.full(1000, 0), np.full(1000, 1), np.full(1000, 2), np.full(1000, 3), np.full(1000, 4)))
+        scale = TEST_SIZE
+    labels = np.zeros(scale * CLASS_NUM)
+    for i in range(CLASS_NUM):
+        labels[scale * i: scale * (i + 1)] = i
+    return labels
 
 
 def __write_data(is_training=True):
     if is_training:
-        res = np.empty((20000, DIM), dtype='<U32')
-        scale = int(20000 / 5)
+        scale = TRAIN_SIZE
     else:
-        res = np.empty((5000, DIM), dtype='<U32')
-        scale = int(5000 / 5)
-    res[0: scale] = gen_data('N', is_training)
-    res[scale: 2 * scale] = gen_data('L', is_training)
-    res[2 * scale: 3 * scale] = gen_data('R', is_training)
-    res[3 * scale: 4 * scale] = gen_data('A', is_training)
-    res[4 * scale: 5 * scale] = gen_data('V', is_training)
+        scale = TEST_SIZE
+    res = np.empty((scale * CLASS_NUM, DIM), dtype='<U32')
+    for i in range(CLASS_NUM):
+        res[scale * i: scale * (i + 1)] = gen_data(LABEL_LIST[i], is_training)
     df = pd.DataFrame(res)
     if is_training:
         df.to_csv("train.csv", index=False)

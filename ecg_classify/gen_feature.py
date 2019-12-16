@@ -5,24 +5,6 @@ from ecg_classify.utils import denoise
 from ecg_classify.wfdb_io import read_sample, read_symbol, read_sig
 
 
-def gen_sample(num):
-    sig = read_sig(num)
-    sig = denoise(sig)
-    sample = read_sample(num)
-    symbol = read_symbol(num)
-    sample = sample[3: -3]
-    symbol = symbol[3: -3]
-    num_of_r_wave = len(sample)
-    beats = np.empty((num_of_r_wave, 300))
-    for i in range(num_of_r_wave):
-        start = sample[i] - 150
-        end = sample[i] + 150
-        if start < 0 or end > 650000:
-            raise Exception('start point or end point is out of range.')
-        beats[i] = sig[start: end]
-    return beats, symbol
-
-
 def gen_feature(num):
     symbol = read_symbol(num)
     sample = read_sample(num)
@@ -49,18 +31,19 @@ def gen_feature(num):
     post_rr = post_rr / rescale
 
     # compute wavelet feature
-    cA4, cD4, cD3, cD2, cD1 = get_wavelet(num, wave_start, wave_end)
+    sig = read_sig(num)
+    cA4, cD4, cD3, cD2, cD1 = get_wavelet(sig, wave_start, wave_end)
 
     # compute morph feature
-    # TODO: speed up by read signal only once
-    p_kur = get_morph(num, p_start, p_end, Kur())
-    p_skew = get_morph(num, p_start, p_end, Skew())
-    t_kur = get_morph(num, t_start, t_end, Kur())
-    t_skew = get_morph(num, t_start, t_end, Skew())
-    r_kur = get_morph(num, r_start, r_end, Kur())
-    r_skew = get_morph(num, r_start, r_end, Skew())
-    min_diff = get_morph(num, r_start, r_end, MinDiff())
-    r_width = get_morph(num, r_start_50, r_end_50, RWidth())
+    clean_sig = denoise(sig)
+    p_kur = get_morph(clean_sig, p_start, p_end, Kur())
+    p_skew = get_morph(clean_sig, p_start, p_end, Skew())
+    t_kur = get_morph(clean_sig, t_start, t_end, Kur())
+    t_skew = get_morph(clean_sig, t_start, t_end, Skew())
+    r_kur = get_morph(clean_sig, r_start, r_end, Kur())
+    r_skew = get_morph(clean_sig, r_start, r_end, Skew())
+    min_diff = get_morph(clean_sig, r_start, r_end, MinDiff())
+    r_width = get_morph(clean_sig, r_start_50, r_end_50, RWidth())
 
     morph = __trim_feature(
         pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew, min_diff, r_width)
@@ -155,9 +138,7 @@ class RWidth(Strategy):
         return r_width
 
 
-def get_morph(num, start, end, strategy):
-    sig = read_sig(num)
-    sig = denoise(sig)
+def get_morph(sig, start, end, strategy):
     n = start.shape[0]
     feature = np.zeros(n)
     for i in range(n):
@@ -177,8 +158,7 @@ def __generate_wavelet_array(sig, size):
     return cA4, cD4, cD3, cD2, cD1
 
 
-def get_wavelet(num, start, end):
-    sig = read_sig(num)
+def get_wavelet(sig, start, end):
     res_size = start.shape[0]
     cA4, cD4, cD3, cD2, cD1 = __generate_wavelet_array(sig[start[0]: end[0]], res_size)
 
