@@ -3,8 +3,7 @@ ECG_Classify
 ============
 
 The data of this demo is downloaded from https://www.physionet.org/content/mitdb/1.0.0/
-Before running the code, put data in: 
-<Project Directory>\data\mit-bih\
+Please put data in "data" folder before running the demo!
 
 
 Features
