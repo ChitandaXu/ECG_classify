@@ -2,14 +2,17 @@
 ECG_Classify
 ============
 
+#1
+Before running this demo, please download data first!
 The data of this demo is downloaded from https://www.physionet.org/content/mitdb/1.0.0/
-Please put data in "data" folder before running the demo!
+
+#2
+Please create a folder named "data", and put all '.dat', '.atr', '.hea' file in this folder.
+
+#3
+The entrance of the code is in 'test_model.py'
 
 
-Features
---------
-
-* TODO
 
 Credits
 -------
