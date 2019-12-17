@@ -1,6 +1,7 @@
 import numpy as np
 import pywt
 
+from ecg_classify.features import Kur, Skew, MinDiff, Slope, RWidth
 from ecg_classify.utils import denoise
 from ecg_classify.wfdb_io import read_sample, read_symbol, read_sig
 
@@ -24,6 +25,8 @@ def gen_feature(num):
     wave_end = (sample + 75).astype(int)
     r_start_50 = (sample - 50).astype(int)
     r_end_50 = (sample + 50).astype(int)
+    slope_start = sample.astype(int)
+    slope_end = (sample + 50).astype(int)
 
     # rescale:
     rescale = __compute_rescale_x(num)
@@ -32,7 +35,7 @@ def gen_feature(num):
 
     # compute wavelet feature
     sig = read_sig(num)
-    cA4, cD4, cD3, cD2, cD1 = get_wavelet(sig, wave_start, wave_end)
+    # cA4, cD4, cD3, cD2, cD1 = get_wavelet(sig, wave_start, wave_end)
 
     # compute morph feature
     clean_sig = denoise(sig)
@@ -44,9 +47,10 @@ def gen_feature(num):
     r_skew = get_morph(clean_sig, r_start, r_end, Skew())
     min_diff = get_morph(clean_sig, r_start, r_end, MinDiff())
     r_width = get_morph(clean_sig, r_start_50, r_end_50, RWidth())
+    slope = get_morph(clean_sig, slope_start, slope_end, Slope())
 
-    morph = __trim_feature(
-        pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew, min_diff, r_width)
+    morph = __triple_feature(
+        pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew, min_diff, r_width, slope)
 
     front = morph[0]
     cur = morph[1]
@@ -62,7 +66,7 @@ def gen_feature(num):
     return np.hstack([front, cur, back, symbols])
 
 
-def __trim_feature(*args):
+def __triple_feature(*args):
     if np.ndim(args[0]) == 1:
         res = np.vstack(args).transpose()
     else:
@@ -93,59 +97,14 @@ def __compute_rescale_x(num):
     return avg / 300
 
 
-class Strategy:
-    def execute(self):
-        return
-
-
-class Skew(Strategy):
-    def execute(self, sig, lo, hi):
-        cur = sig[lo: hi]
-        mean = np.mean(cur)
-        std_val = np.std(cur, ddof=1)
-        n = len(cur)
-        skew = 1 / (n - 1) * np.sum((cur - mean) ** 4) / (std_val ** 3)
-        return skew
-
-
-class Kur(Strategy):
-    def execute(self, sig, lo, hi):
-        cur = sig[lo: hi]
-        mean = np.mean(cur)
-        std_val = np.std(cur, ddof=1)
-        n = len(cur)
-        skew = 1 / (n - 1) * np.sum((cur - mean) ** 4)
-        return skew
-
-
-class MinDiff(Strategy):
-    def execute(self, sig, lo, hi):
-        mid = lo + (hi - lo) // 2
-        left = sig[lo: mid]
-        right = sig[mid: hi]
-        min_diff = min(right) - min(left)
-        return min_diff
-
-
-class RWidth(Strategy):
-    def execute(self, sig, lo, hi):
-        mid = lo + (hi - lo) // 2
-        left = sig[lo: mid]
-        right = sig[mid: hi]
-        left_idx = np.argmin(left)
-        right_idx = np.argmin(right)
-        r_width = right_idx - left_idx + len(left)
-        return r_width
-
-
-def get_morph(sig, start, end, strategy):
+def get_morph(sig, start, end, feature):
     n = start.shape[0]
-    feature = np.zeros(n)
+    morph = np.zeros(n)
     for i in range(n):
         lo = start[i]
         hi = end[i]
-        feature[i] = strategy.execute(sig, lo, hi)
-    return feature
+        morph[i] = feature.execute(sig, lo, hi)
+    return morph
 
 
 def __generate_wavelet_array(sig, size):
