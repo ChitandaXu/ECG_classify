@@ -9,9 +9,6 @@ from ecg_classify.gen_data import gen_label, read_data
 from sklearn.utils import shuffle
 from ecg_classify.gen_label import MultiLabel, SingleLabel
 
-import os
-os.chdir('./ecg_classify')
-
 
 def __load_data(force=False):
     start_time = time.time()
@@ -25,6 +22,8 @@ def __prepare_data(df_train, df_test, label, inter=True):
     X_train = df_train.drop(str(FEATURE_NUM), axis=1).values
     X_test = df_test.drop(str(FEATURE_NUM), axis=1).values
     y_train, y_test = label.gen()
+    y_train[y_train == 2] = 1
+    y_test[y_test == 2] = 1
     if inter:
         X_train, y_train = shuffle(X_train, y_train)
         X_test, y_test = shuffle(X_test, y_test)
@@ -41,8 +40,11 @@ def inter_patient():
     X_train, y_train, X_test, y_test = __prepare_data(
         df_train, df_test, MultiLabel())
 
-    clf = RandomForestClassifier(n_estimators=100, max_depth=8, random_state=0)
+    clf = RandomForestClassifier(n_estimators=200, max_depth=8, criterion='entropy')
+    start_time = time.time()
     clf.fit(X_train, y_train)
+    end_time = time.time()
+    print("training time span: %.2f s" % (end_time - start_time))
     y_pred = clf.predict(X_test)
 
     print(accuracy_score(y_true=y_test, y_pred=y_pred))
@@ -51,7 +53,7 @@ def inter_patient():
 
 def intra_patient():
     df_train, df_test = __load_data()
-    X_train, X_test, y_train, y_test = __prepare_data(
+    X_train, y_train, X_test, y_test = __prepare_data(
         df_train, df_test, MultiLabel(), inter=False)
 
     clf = RandomForestClassifier(n_estimators=100, max_depth=6, random_state=0)

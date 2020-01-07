@@ -2,14 +2,14 @@
 
 """Console script for ecg_classify."""
 import sys
-import os
 import click
+from ecg_classify.test_model import *
 
 
 @click.command()
 def main(args=None):
     """Console script for ecg_classify."""
-    os.chdir('C:/Users/Xuexi/PycharmProjects/ECG_classify/ecg_classify')
+    inter_patient()
     return 0
 
 

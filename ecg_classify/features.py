@@ -11,9 +11,11 @@ class Skew(Feature):
     def execute(self, sig, lo, hi):
         cur = sig[lo: hi]
         mean = np.mean(cur)
-        std_val = np.std(cur, ddof=1)
+        std_val = np.std(cur)
+        if std_val == 0:
+            std_val = 1e-6
         n = len(cur)
-        skew = 1 / (n - 1) * np.sum((cur - mean) ** 4) / (std_val ** 3)
+        skew = 1 / n * np.sum((cur - mean) ** 4) / (std_val ** 3)
         return skew
 
 
@@ -21,14 +23,17 @@ class Kur(Feature):
     def execute(self, sig, lo, hi):
         cur = sig[lo: hi]
         mean = np.mean(cur)
-        std_val = np.std(cur, ddof=1)
         n = len(cur)
-        skew = 1 / (n - 1) * np.sum((cur - mean) ** 4)
+        skew = 1 / n * np.sum((cur - mean) ** 4)
         return skew
 
 
 class MinDiff(Feature):
     def execute(self, sig, lo, hi):
+        cur = sig[lo: hi]
+        idx = np.argmin(cur)
+        if abs(idx) <= 3:
+            sig = -sig
         mid = lo + (hi - lo) // 2
         left = sig[lo: mid]
         right = sig[mid: hi]
@@ -36,15 +41,15 @@ class MinDiff(Feature):
         return min_diff
 
 
-class RWidth(Feature):
+class QrsWidth(Feature):
     def execute(self, sig, lo, hi):
         mid = lo + (hi - lo) // 2
         left = sig[lo: mid]
         right = sig[mid: hi]
         left_idx = np.argmin(left)
         right_idx = np.argmin(right)
-        r_width = right_idx - left_idx + len(left)
-        return r_width
+        qrs_width = right_idx - left_idx + len(left)
+        return qrs_width
 
 
 class Slope(Feature):
@@ -61,3 +66,21 @@ class Slope(Feature):
                 idx = min_arr[1]
         slope = np.abs((cur[0] - cur[idx]) / idx)
         return slope
+
+
+class PRInterval(Feature):
+    def execute(self, sig, lo, hi):
+        if lo < 0:
+            lo = 0
+        sig = revert_sig(sig, lo, hi)
+        p_region = sig[lo: hi - 20]
+        p_idx = np.argmax(p_region)
+        return hi - p_idx
+
+
+def revert_sig(sig, lo, hi):
+    cur = sig[lo: hi]
+    idx = np.argmin(cur)
+    if abs(idx) <= 3:
+        sig = -sig
+    return sig

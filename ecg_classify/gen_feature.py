@@ -1,8 +1,8 @@
 import numpy as np
 import pywt
 
-from ecg_classify.features import Kur, Skew, MinDiff, Slope, RWidth
-from ecg_classify.utils import denoise
+from ecg_classify.features import Kur, Skew, MinDiff, Slope, QrsWidth, PRInterval
+from ecg_classify.utils import wav, bandpass
 from ecg_classify.wfdb_io import read_sample, read_symbol, read_sig
 
 
@@ -21,49 +21,53 @@ def gen_feature(num):
     t_end = (sample + post_rr * 0.65).astype(int)
     r_start = (sample - 30).astype(int)
     r_end = (sample + 30).astype(int)
-    wave_start = (sample - 75).astype(int)
-    wave_end = (sample + 75).astype(int)
-    r_start_50 = (sample - 50).astype(int)
-    r_end_50 = (sample + 50).astype(int)
     slope_start = sample.astype(int)
     slope_end = (sample + 50).astype(int)
+    pr_start = (sample - 120).astype(int)
+    pr_end = sample.astype(int)
+    amp_start = (sample - 80).astype(int)
+    amp_end = (sample + 80).astype(int)
 
     # rescale:
     rescale = __compute_rescale_x(num)
     pre_rr = pre_rr / rescale
-    post_rr = post_rr / rescale
-
-    # compute wavelet feature
-    sig = read_sig(num)
-    # cA4, cD4, cD3, cD2, cD1 = get_wavelet(sig, wave_start, wave_end)
 
     # compute morph feature
-    clean_sig = denoise(sig)
-    p_kur = get_morph(clean_sig, p_start, p_end, Kur())
-    p_skew = get_morph(clean_sig, p_start, p_end, Skew())
-    t_kur = get_morph(clean_sig, t_start, t_end, Kur())
-    t_skew = get_morph(clean_sig, t_start, t_end, Skew())
-    r_kur = get_morph(clean_sig, r_start, r_end, Kur())
-    r_skew = get_morph(clean_sig, r_start, r_end, Skew())
-    min_diff = get_morph(clean_sig, r_start, r_end, MinDiff())
-    r_width = get_morph(clean_sig, r_start_50, r_end_50, RWidth())
-    slope = get_morph(clean_sig, slope_start, slope_end, Slope())
+    sig = read_sig(num)
+    sig_b = bandpass(sig, 30)
+    sig_w = wav(sig)
+    p_kur = get_morph(sig, p_start, p_end, Kur())
+    p_skew = get_morph(sig, p_start, p_end, Skew())
+    t_kur = get_morph(sig, t_start, t_end, Kur())
+    t_skew = get_morph(sig, t_start, t_end, Skew())
+    r_kur = get_morph(sig, r_start, r_end, Kur())
+    r_skew = get_morph(sig, r_start, r_end, Skew())
+    min_diff = get_morph(sig_w, r_start, r_end, MinDiff())  # w
+    slope = get_morph(sig_b, slope_start, slope_end, Slope())  # b
+    pr_interval = get_morph(sig_b, pr_start, pr_end, PRInterval())  # b
+    r_width = get_morph(sig_b, amp_start, amp_end, QrsWidth())  # b
 
     morph = __triple_feature(
-        pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew, min_diff, r_width, slope)
+        pre_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew, min_diff, r_width, slope)
+    other = __trim_feature(pr_interval)
 
     front = morph[0]
     cur = morph[1]
     back = morph[2]
-    # wavelet = __trim_feature(cA4, cD4, cD3, cD2, cD1)
-    # front = np.hstack((morph[0], wavelet[0]))
-    # cur = np.hstack((morph[1], wavelet[1]))
-    # back = np.hstack((morph[2], wavelet[2]))
 
     # 4nd -> (n-1)th
     symbols = np.expand_dims(symbol[1: -1], 1)
+    features = np.hstack([front, cur, back, other, symbols])
+    return features
 
-    return np.hstack([front, cur, back, symbols])
+
+def __trim_feature(*args):
+    if np.ndim(args[0]) == 1:
+        res = np.vstack(args).transpose()
+    else:
+        res = np.hstack(args)
+    cur = res[1: -1]
+    return cur
 
 
 def __triple_feature(*args):
@@ -75,19 +79,6 @@ def __triple_feature(*args):
     cur = res[1: -1]
     back = res[2:]
     return front, cur, back
-
-
-def __compute_rescale(num):
-    symbol = read_symbol(num)
-    sample = read_sample(num)
-    rr = sample[1:] - sample[:-1]
-    pre_rr = rr[:-1]
-    symbol = symbol[1:-1]
-    normal = pre_rr[symbol == 'N']
-    if len(normal) == 0:
-        return 1
-    avg = sum(normal) / len(normal)
-    return avg / 300
 
 
 def __compute_rescale_x(num):
@@ -125,6 +116,3 @@ def get_wavelet(sig, start, end):
         cur_sig = sig[start[idx]: end[idx]]
         [cA4[idx], cD4[idx], cD3[idx], cD2[idx], cD1[idx]] = pywt.wavedec(cur_sig, 'db4', level=4)
     return cA4, cD4, cD3, cD2, cD1
-
-
-
