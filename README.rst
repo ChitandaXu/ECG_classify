@@ -5,11 +5,11 @@ ECG_Classify
 1
 -------
 Before running this demo, please download data first!
-The data of this demo is downloaded from https://www.physionet.org/content/mitdb/1.0.0/
+The data of this demo can be downloaded from https://www.physionet.org/content/mitdb/1.0.0/
 
 2
 -------
-Please create a folder named "data", and put all '.dat', '.atr', '.hea' file in this folder.
+Please create a folder named "data", and put the downloaded files (all '.dat', '.atr', '.hea' files) in this folder.
 
 3
 -------
