@@ -1,0 +1,7 @@
+import os
+import matplotlib.pyplot as plt
+os.chdir('./ecg_classify')
+from ecg_classify.utils import *
+
+
+plt.scatter(idx, sig[idx], c='r', marker='o')
