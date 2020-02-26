@@ -29,8 +29,9 @@ def gen_feature(num):
     amp_end = (sample + 80).astype(int)
 
     # rescale:
-    rescale = __compute_rescale_x(num)
-    pre_rr = pre_rr / rescale
+    # rescale = __compute_rescale_x(num)
+    # pre_rr = pre_rr / rescale
+    # post_rr = post_rr / rescale
 
     # compute morph feature
     sig = read_sig(num)
@@ -48,7 +49,7 @@ def gen_feature(num):
     r_width = get_morph(sig_b, amp_start, amp_end, QrsWidth())  # b
 
     morph = __triple_feature(
-        pre_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew, min_diff, r_width, slope)
+        pre_rr, post_rr, p_kur, p_skew, t_kur, t_skew, r_kur, r_skew, min_diff, r_width, slope)
     other = __trim_feature(pr_interval)
 
     front = morph[0]
